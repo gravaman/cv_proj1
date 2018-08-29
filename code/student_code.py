@@ -24,30 +24,34 @@ def my_imfilter(image, filter):
   assert filter.shape[0] % 2 == 1
   assert filter.shape[1] % 2 == 1
 
-  buffer_size = np.uint8(filter.shape[0])
-  half_buffer = np.uint8((buffer_size - 1) / 2)
+  BUFFER_SIZE = np.uint8(filter.shape[0])
+  HALF_BUFFER = np.uint8((BUFFER_SIZE - 1) / 2)
 
-  # add black frame around image
-  framed_image = frame_image(image, buffer_size)
+  framed_image = frame_image(image, BUFFER_SIZE)
 
   rows, cols, _ = framed_image.shape
   temp_channels = []
 
+  # filter each color channel
   for channel in color_channels(framed_image):
-      filtered_channel = np.empty((rows - buffer_size * 2, cols - buffer_size * 2))
+      filtered_channel = np.empty((rows - BUFFER_SIZE * 2, cols - BUFFER_SIZE * 2))
 
-      for i in range(buffer_size, rows - buffer_size):
-          for j in range(buffer_size, cols - buffer_size):
-              neighbors = channel[i - half_buffer:i + half_buffer + 1, j - half_buffer:j + half_buffer + 1]
+      # filter each row
+      for i in range(BUFFER_SIZE, rows - BUFFER_SIZE):
+          # filter each column
+          for j in range(BUFFER_SIZE, cols - BUFFER_SIZE):
+              # get relevant neighbors
+              neighbors = channel[i - HALF_BUFFER:i + HALF_BUFFER + 1, j - HALF_BUFFER:j + HALF_BUFFER + 1]
               result = 0
 
+              # implement filter on neighbors
               for index, row in enumerate(neighbors):
                   filter_row = filter[index]
                   filter_transpose = np.transpose(filter_row)
-                  temp = np.dot(row, filter_transpose)
-                  result += temp
+                  result += np.dot(row, filter_transpose)
 
-              filtered_channel[i - buffer_size][j - buffer_size] = result
+              # add pixel result to filtered channel
+              filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = result
       temp_channels.append(filtered_channel)
 
   filtered_image = np.dstack((temp_channels[0], temp_channels[1], temp_channels[2]))
@@ -71,10 +75,7 @@ def frame_image(image, buffer_size):
     return np.dstack((channels[0], channels[1], channels[2]))
 
 def color_channels(image):
-    red = image[:,:,0]
-    green = image[:,:,1]
-    blue = image[:,:,2]
-    return [red, green, blue]
+    return [image[:,:,0], image[:,:,1], image[:,:,2]]
 
 def create_hybrid_image(image1, image2, filter):
   """
