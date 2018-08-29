@@ -24,60 +24,57 @@ def my_imfilter(image, filter):
   assert filter.shape[0] % 2 == 1
   assert filter.shape[1] % 2 == 1
 
-  ############################
-  ### TODO: YOUR CODE HERE ###
   buffer_size = np.uint8(filter.shape[0])
   half_buffer = np.uint8((buffer_size - 1) / 2)
 
   # add black frame around image
-  red = image[:,:,0]
-  green = image[:,:,1]
-  blue = image[:,:,2]
+  framed_image = frame_image(image, buffer_size)
 
-  col_count = red.shape[1]
-  black_row = np.zeros((buffer_size, col_count))
+  rows, cols, _ = framed_image.shape
+  temp_channels = []
 
-  red1 = np.insert(red, 0, black_row, axis=0)
-  red1 = np.append(red1, black_row, axis=0)
-  green1 = np.insert(green, 0, black_row, axis=0)
-  green1 = np.append(green1, black_row, axis=0)
-  blue1 = np.insert(blue, 0, black_row, axis=0)
-  blue1 = np.append(blue1, black_row, axis=0)
+  for channel in color_channels(framed_image):
+      filtered_channel = np.empty((rows - buffer_size * 2, cols - buffer_size * 2))
 
-  row1_count = red1.shape[0]
-  black_col = np.zeros((row1_count, buffer_size))
+      for i in range(buffer_size, rows - buffer_size):
+          for j in range(buffer_size, cols - buffer_size):
+              neighbors = channel[i - half_buffer:i + half_buffer + 1, j - half_buffer:j + half_buffer + 1]
+              result = 0
 
-  red2 = np.concatenate((black_col, red1), axis=1)
-  red2 = np.append(red2, black_col, axis=1)
-  green2 = np.concatenate((black_col, green1), axis=1)
-  green2 = np.append(green2, black_col, axis=1)
-  blue2 = np.concatenate((black_col, blue1), axis=1)
-  blue2 = np.append(blue2, black_col, axis=1)
+              for index, row in enumerate(neighbors):
+                  filter_row = filter[index]
+                  filter_transpose = np.transpose(filter_row)
+                  temp = np.dot(row, filter_transpose)
+                  result += temp
 
-  image2 = np.dstack((red2, green2, blue2))
+              filtered_channel[i - buffer_size][j - buffer_size] = result
+      temp_channels.append(filtered_channel)
 
-  # filter updated image
-  rows = red2.shape[0]
-  cols = red2.shape[1]
-
-  filtered_image = np.empty((rows - buffer_size * 2, cols - buffer_size * 2))
-
-  for i in range(buffer_size, rows - buffer_size):
-      for j in range(buffer_size, cols - buffer_size):
-          neighbors = red2[i - half_buffer:i + half_buffer + 1, j - half_buffer:j + half_buffer + 1]
-          result = 0
-
-          for index, row in enumerate(neighbors):
-              filter_row = filter[index]
-              filter_transpose = np.transpose(filter_row)
-              temp = np.dot(row, filter_transpose)
-              result += temp
-
-          filtered_image[i - buffer_size][j - buffer_size] = result
-
-  ### END OF STUDENT CODE ####
-  ############################
+  filtered_image = np.dstack((temp_channels[0], temp_channels[1], temp_channels[2]))
   return filtered_image
+
+def frame_image(image, buffer_size):
+    channels = color_channels(image)
+    for index, channel in enumerate(channels):
+      row_count, col_count = channel.shape
+      black_col = np.zeros((row_count + buffer_size * 2, buffer_size))
+      black_row = np.zeros((buffer_size, col_count))
+
+      channel = np.concatenate((black_row, channel), axis=0)
+      channel = np.append(channel, black_row, axis=0)
+
+      channel = np.concatenate((black_col, channel), axis=1)
+      channel = np.append(channel, black_col, axis=1)
+
+      channels[index] = channel
+
+    return np.dstack((channels[0], channels[1], channels[2]))
+
+def color_channels(image):
+    red = image[:,:,0]
+    green = image[:,:,1]
+    blue = image[:,:,2]
+    return [red, green, blue]
 
 def create_hybrid_image(image1, image2, filter):
   """
