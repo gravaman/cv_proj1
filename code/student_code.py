@@ -105,13 +105,42 @@ def create_hybrid_image(image1, image2, filter):
   assert image1.shape[1] == image2.shape[1]
   assert image1.shape[2] == image2.shape[2]
 
-  ############################
-  ### TODO: YOUR CODE HERE ###
+  low_frequencies = my_imfilter(image1, filter)
+  low_frequencies2 = my_imfilter(image2, filter)
 
-  raise NotImplementedError('`create_hybrid_image` function in ' +
-    '`student_code.py` needs to be implemented')
+  img1_channels = color_channels(image1)
+  img2_channels = color_channels(image2)
+  low_frequencies1_channels = color_channels(low_frequencies)
+  low_frequencies2_channels = color_channels(low_frequencies2)
 
-  ### END OF STUDENT CODE ####
-  ############################
+  high_frequencies = []
+  for index, img2_channel in enumerate(img2_channels):
+      high_frequencies.append(img2_channel - low_frequencies2_channels[index])
 
+  hybrid = []
+  for index, low_channel1 in enumerate(low_frequencies1_channels):
+      hybrid.append(high_frequencies[index] + low_channel1)
+
+  high_frequencies = np.dstack((high_frequencies[0], high_frequencies[1], high_frequencies[2]))
+  hybrid_image = np.dstack((hybrid[0], hybrid[1], hybrid[2]))
+  hybrid_image = clip_image(hybrid_image)
   return low_frequencies, high_frequencies, hybrid_image
+
+def clip_image(image):
+    channels = color_channels(image)
+    clipped_image = []
+    for channel in channels:
+        clipped_channel = []
+        for row in channel:
+            clipped_row = []
+            for val in row:
+                if val < 0:
+                    clipped_row.append(0)
+                elif val > 1:
+                    clipped_row.append(1)
+                else:
+                    clipped_row.append(val)
+            clipped_channel.append(clipped_row)
+        clipped_image.append(clipped_channel)
+    clipped_image = np.dstack((clipped_image[0], clipped_image[1], clipped_image[2]))
+    return clipped_image
