@@ -1,4 +1,5 @@
 import numpy as np
+from functools import reduce
 
 def my_imfilter(image, filter):
   """
@@ -28,51 +29,43 @@ def my_imfilter(image, filter):
   HALF_BUFFER = np.uint8((BUFFER_SIZE - 1) / 2)
 
   framed_image = frame_image(image, BUFFER_SIZE)
-
   rows, cols, _ = framed_image.shape
   temp_channels = []
 
   # filter each color channel
   for channel in color_channels(framed_image):
       filtered_channel = np.empty((rows - BUFFER_SIZE * 2, cols - BUFFER_SIZE * 2))
-
-      # filter each row
       for i in range(BUFFER_SIZE, rows - BUFFER_SIZE):
-          # filter each column
           for j in range(BUFFER_SIZE, cols - BUFFER_SIZE):
-              # get relevant neighbors
+              # get relevant neighbors and add to filtered channel
               neighbors = channel[i - HALF_BUFFER:i + HALF_BUFFER + 1, j - HALF_BUFFER:j + HALF_BUFFER + 1]
-              result = 0
-
-              # implement filter on neighbors
-              for index, row in enumerate(neighbors):
-                  filter_row = filter[index]
-                  filter_transpose = np.transpose(filter_row)
-                  result += np.dot(row, filter_transpose)
-
-              # add pixel result to filtered channel
-              filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = result
+              filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = filter_neighborhood(filter, neighbors)
       temp_channels.append(filtered_channel)
 
-  filtered_image = np.dstack((temp_channels[0], temp_channels[1], temp_channels[2]))
+  filtered_image = stacker(temp_channels)
   return filtered_image
+
+def filter_neighborhood(filter, neighbors):
+    return reduce((lambda x, y: x + y), [np.dot(row, np.transpose(filter[index])) for index, row in enumerate(neighbors)])
 
 def frame_image(image, buffer_size):
     channels = color_channels(image)
-    for index, channel in enumerate(channels):
-      row_count, col_count = channel.shape
-      black_col = np.zeros((row_count + buffer_size * 2, buffer_size))
-      black_row = np.zeros((buffer_size, col_count))
+    buffer_row, buffer_col = get_buffers(buffer_size, channels[0])
+    channels = [buffer_channel(buffer_row, buffer_col, channel) for channel in channels]
+    return stacker(channels)
 
-      channel = np.concatenate((black_row, channel), axis=0)
-      channel = np.append(channel, black_row, axis=0)
+def buffer_channel(buffer_row, buffer_col, channel):
+    channel = np.concatenate((buffer_row, channel), axis=0)
+    channel = np.append(channel, buffer_row, axis=0)
 
-      channel = np.concatenate((black_col, channel), axis=1)
-      channel = np.append(channel, black_col, axis=1)
+    channel = np.concatenate((buffer_col, channel), axis=1)
+    return np.append(channel, buffer_col, axis=1)
 
-      channels[index] = channel
-
-    return np.dstack((channels[0], channels[1], channels[2]))
+def get_buffers(buffer_size, channel):
+    row_count, col_count = channel.shape
+    buffer_row = np.zeros((buffer_size, col_count))
+    buffer_col = np.zeros((row_count + buffer_size * 2, buffer_size))
+    return buffer_row, buffer_col
 
 def color_channels(image):
     return [image[:,:,0], image[:,:,1], image[:,:,2]]
@@ -113,12 +106,13 @@ def create_hybrid_image(image1, image2, filter):
   low_frequencies1_channels = color_channels(low_frequencies)
   low_frequencies2_channels = color_channels(low_frequencies2)
 
-  high_frequencies = [img2_channel - low_frequencies2_channels[index] for index, img2_channel in enumerate(img2_channels)]:
+  high_frequencies = [img2_channel - low_frequencies2_channels[index] for index, img2_channel in enumerate(img2_channels)]
   hybrid = [high_frequencies[index] + low_channel1 for index, low_channel1 in enumerate(low_frequencies1_channels)]
 
   return low_frequencies, stacker(high_frequencies), clip_image(stacker(hybrid))
 
 def clip_image(image):
+    # clip values below 0 or above 1 for each channel
     channels = color_channels(image)
     clipped_image = []
     for channel in channels:
@@ -133,7 +127,6 @@ def stacker(arr):
     return np.dstack((arr[0], arr[1], arr[2]))
 
 def clip_val(val):
-    # clip values below 0 or above 1
     if val < 0:
         return 0
     elif val > 1:
