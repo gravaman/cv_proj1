@@ -25,28 +25,58 @@ def my_imfilter(image, filter):
   assert filter.shape[0] % 2 == 1
   assert filter.shape[1] % 2 == 1
 
-  BUFFER_SIZE = np.uint8(filter.shape[0])
-  HALF_BUFFER = np.uint8((BUFFER_SIZE - 1) / 2)
+  BUFFER_SIZE, HALF_BUFFER = get_buffer_sizes(filter)
 
   framed_image = frame_image(image, BUFFER_SIZE)
   rows, cols, _ = framed_image.shape
   temp_channels = []
 
-  # filter each color channel
   for channel in color_channels(framed_image):
       filtered_channel = np.empty((rows - BUFFER_SIZE * 2, cols - BUFFER_SIZE * 2))
       for i in range(BUFFER_SIZE, rows - BUFFER_SIZE):
           for j in range(BUFFER_SIZE, cols - BUFFER_SIZE):
-              # get relevant neighbors and add to filtered channel
-              neighbors = channel[i - HALF_BUFFER:i + HALF_BUFFER + 1, j - HALF_BUFFER:j + HALF_BUFFER + 1]
-              filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = filter_neighborhood(filter, neighbors)
+              neighbors = []
+              if is_1d_row(filter):
+                  neighbors = channel[i, j - HALF_BUFFER:j + HALF_BUFFER + 1]
+                  result = filter_neighborhood(filter, neighbors)
+                  filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = result
+              elif is_1d_col(filter):
+                  neighbors = channel[i - HALF_BUFFER:i + HALF_BUFFER + 1, j]
+                  result = filter_neighborhood(filter, neighbors)
+                  filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = result
+              else:
+                  neighbors = channel[i - HALF_BUFFER:i + HALF_BUFFER + 1, j - HALF_BUFFER:j + HALF_BUFFER + 1]
+                  result = filter_neighborhood(filter, neighbors)
+                  filtered_channel[i - BUFFER_SIZE][j - BUFFER_SIZE] = result
+
       temp_channels.append(filtered_channel)
 
   filtered_image = stacker(temp_channels)
   return filtered_image
 
+def is_1d_col(arr):
+    return arr.shape[0] == 1
+
+def is_1d_row(arr):
+    return arr.shape[1] == 1
+
+def get_buffer_sizes(filter):
+    buffer_size = np.uint8(filter.shape[0])
+
+    if is_1d_col(filter):
+        buffer_size = np.uint8(filter.shape[1])
+
+    half_buffer = np.uint8((buffer_size - 1) / 2)
+    return buffer_size, half_buffer
+
 def filter_neighborhood(filter, neighbors):
-    return reduce((lambda x, y: x + y), [np.dot(row, np.transpose(filter[index])) for index, row in enumerate(neighbors)])
+    rows, cols = filter.shape
+    if rows == 1:
+        return reduce((lambda x, y: x + y), [np.dot(val, filter[0][index]) for index, val in enumerate(neighbors)])
+    elif cols == 1:
+        return reduce((lambda x, y: x + y), [np.dot(val, filter[index]) for index, val in enumerate(neighbors)])
+    else:
+        return reduce((lambda x, y: x + y), [np.dot(row, np.transpose(filter[index])) for index, row in enumerate(neighbors)])
 
 def frame_image(image, buffer_size):
     channels = color_channels(image)
