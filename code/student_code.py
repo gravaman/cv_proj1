@@ -137,24 +137,8 @@ def create_hybrid_image(image1, image2, filter):
   return low_frequencies, stacker(high_frequencies), clip_image(stacker(hybrid))
 
 def clip_image(image):
-    # clip values below 0 or above 1 for each channel
-    channels = color_channels(image)
-    clipped_image = []
-    for channel in channels:
-        clipped_channel = []
-        for row in channel:
-            clipped_row = [clip_val(val) for val in row]
-            clipped_channel.append(clipped_row)
-        clipped_image.append(clipped_channel)
+    clipped_image = [np.clip(channel, 0, 1) for channel in color_channels(image)]
     return stacker(clipped_image)
 
 def stacker(arr):
     return np.dstack((arr[0], arr[1], arr[2]))
-
-def clip_val(val):
-    if val < 0:
-        return 0
-    elif val > 1:
-        return 1
-    else:
-        return val
