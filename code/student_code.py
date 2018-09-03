@@ -28,6 +28,7 @@ def my_imfilter(image, filter):
   BUFFER_SIZE, HALF_BUFFER = get_buffer_sizes(filter)
 
   framed_image = frame_image(image, BUFFER_SIZE)
+
   rows, cols, _ = framed_image.shape
   temp_channels = []
 
@@ -81,15 +82,9 @@ def filter_neighborhood(filter, neighbors):
 def frame_image(image, buffer_size):
     channels = color_channels(image)
     buffer_row, buffer_col = get_buffers(buffer_size, channels[0])
-    channels = [buffer_channel(buffer_row, buffer_col, channel) for channel in channels]
+    buff = np.int(buffer_size)
+    channels = [np.pad(channel, ((buff,buff), (buff,buff)), 'constant', constant_values=((0,0),(0,0))) for channel in channels]
     return stacker(channels)
-
-def buffer_channel(buffer_row, buffer_col, channel):
-    channel = np.concatenate((buffer_row, channel), axis=0)
-    channel = np.append(channel, buffer_row, axis=0)
-
-    channel = np.concatenate((buffer_col, channel), axis=1)
-    return np.append(channel, buffer_col, axis=1)
 
 def get_buffers(buffer_size, channel):
     row_count, col_count = channel.shape
