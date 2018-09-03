@@ -73,11 +73,11 @@ def get_buffer_sizes(filter):
 def filter_neighborhood(filter, neighbors):
     rows, cols = filter.shape
     if rows == 1:
-        return reduce((lambda x, y: x + y), [np.dot(val, filter[0][index]) for index, val in enumerate(neighbors)])
+        return np.sum([np.dot(val, filter[0][index]) for index, val in enumerate(neighbors)])
     elif cols == 1:
-        return reduce((lambda x, y: x + y), [np.dot(val, filter[index]) for index, val in enumerate(neighbors)])
+        return np.sum([np.dot(val, filter[index]) for index, val in enumerate(neighbors)])
     else:
-        return reduce((lambda x, y: x + y), [np.dot(row, np.transpose(filter[index])) for index, row in enumerate(neighbors)])
+        return np.sum([np.dot(row, np.transpose(filter[index])) for index, row in enumerate(neighbors)])
 
 def frame_image(image, buffer_size):
     channels = color_channels(image)
