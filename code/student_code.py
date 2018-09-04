@@ -77,7 +77,7 @@ def filter_neighborhood(filter, neighbors):
     elif cols == 1:
         return np.sum([np.dot(val, filter[index]) for index, val in enumerate(neighbors)])
     else:
-        return np.sum([np.dot(row, np.transpose(filter[index])) for index, row in enumerate(neighbors)])
+        return np.sum(np.multiply(filter, neighbors))
 
 def frame_image(image, buffer_size):
     channels = color_channels(image)
