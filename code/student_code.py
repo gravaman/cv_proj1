@@ -80,10 +80,8 @@ def filter_neighborhood(filter, neighbors):
         return np.sum(np.multiply(filter, neighbors))
 
 def frame_image(image, buffer_size):
-    channels = color_channels(image)
-    buffer_row, buffer_col = get_buffers(buffer_size, channels[0])
     buff = np.int(buffer_size)
-    channels = [np.pad(channel, ((buff,buff), (buff,buff)), 'symmetric') for channel in channels]
+    channels = [np.pad(channel, ((buff,buff), (buff,buff)), 'symmetric') for channel in color_channels(image)]
     return stacker(channels)
 
 def get_buffers(buffer_size, channel):
