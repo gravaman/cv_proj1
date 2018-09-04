@@ -124,7 +124,7 @@ def create_hybrid_image(image1, image2, filter):
   low_frequencies = my_imfilter(image1, filter)
   low_frequencies2 = my_imfilter(image2, filter)
 
-  img1_channels = color_channels(image1)
+  # img1_channels = color_channels(image1)
   img2_channels = color_channels(image2)
   low_frequencies1_channels = color_channels(low_frequencies)
   low_frequencies2_channels = color_channels(low_frequencies2)
