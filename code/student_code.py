@@ -83,7 +83,7 @@ def frame_image(image, buffer_size):
     channels = color_channels(image)
     buffer_row, buffer_col = get_buffers(buffer_size, channels[0])
     buff = np.int(buffer_size)
-    channels = [np.pad(channel, ((buff,buff), (buff,buff)), 'constant', constant_values=((0,0),(0,0))) for channel in channels]
+    channels = [np.pad(channel, ((buff,buff), (buff,buff)), 'symmetric') for channel in channels]
     return stacker(channels)
 
 def get_buffers(buffer_size, channel):
